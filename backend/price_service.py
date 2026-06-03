@@ -49,16 +49,32 @@ def get_current_price(symbol):
 def get_exchange_rate_usdkrw():
     """
     Fetches the latest USD/KRW exchange rate.
+    Tries yfinance first, then Frankfurter API as fallback.
     """
+    # 1. Try yfinance
     try:
         ticker = yf.Ticker("USDKRW=X")
         data = ticker.history(period='1d')
         if not data.empty:
-            return data['Close'].iloc[-1]
-        return 1350.0  # Fallback exchange rate
+            rate = float(data['Close'].iloc[-1])
+            if rate > 100:  # sanity check
+                print(f"Exchange rate from yfinance: {rate}")
+                return rate
     except Exception as e:
-        print(f"Error fetching exchange rate: {e}")
-        return 1350.0
+        print(f"yfinance exchange rate failed: {e}")
+
+    # 2. Try Frankfurter API (free, no key required)
+    try:
+        r = requests.get('https://api.frankfurter.app/latest?from=USD&to=KRW', timeout=5)
+        if r.status_code == 200:
+            rate = float(r.json()['rates']['KRW'])
+            print(f"Exchange rate from Frankfurter: {rate}")
+            return rate
+    except Exception as e:
+        print(f"Frankfurter exchange rate failed: {e}")
+
+    print("Using fallback exchange rate: 1380.0")
+    return 1380.0
 
 def search_symbol(query):
     """
