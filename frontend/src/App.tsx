@@ -56,25 +56,31 @@ function App() {
   // Edit state
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editQuantity, setEditQuantity] = useState('');
+  const [waking, setWaking] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (retryCount = 0): Promise<void> => {
     try {
       const response = await fetch(`${API_BASE}/api/assets`);
       if (!response.ok) throw new Error("서버에서 데이터를 가져오지 못했습니다.");
       const result: ApiResponse = await response.json();
-      
+
       setData(result);
       setError(null);
+      setWaking(false);
 
-      // Fetch history
       const historyRes = await fetch(`${API_BASE}/api/history`);
       if (historyRes.ok) {
         const historyResult = await historyRes.json();
         setHistory(historyResult);
       }
     } catch (error: any) {
-      console.error('Error fetching data:', error);
-      setError(error.message || "서버 연결에 실패했습니다.");
+      if (retryCount < 4) {
+        setWaking(true);
+        setTimeout(() => fetchData(retryCount + 1), 15000);
+      } else {
+        setWaking(false);
+        setError("서버 연결에 실패했습니다. 잠시 후 새로고침해 주세요.");
+      }
     } finally {
       setLoading(false);
     }
@@ -82,7 +88,7 @@ function App() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60000);
+    const interval = setInterval(() => fetchData(), 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -193,6 +199,11 @@ function App() {
     <div className="container">
       <header>
         <h1>실시간 자산 트래커</h1>
+        {waking && (
+          <div className="waking-banner">
+            ⏳ 서버 기동 중... 최대 1분 소요됩니다. 자동으로 재시도합니다.
+          </div>
+        )}
         {error && <div className="error-banner">{error}</div>}
         {data && (
           <div className="dashboard-summary">
