@@ -36,7 +36,7 @@ interface ApiResponse {
   last_updated?: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || '${API_BASE}';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function App() {
   const [data, setData] = useState<ApiResponse | null>(null);
