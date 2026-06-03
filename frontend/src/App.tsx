@@ -36,6 +36,8 @@ interface ApiResponse {
   last_updated?: string;
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || '${API_BASE}';
+
 function App() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [history, setHistory] = useState<{date: string, total_value_krw: number}[]>([]);
@@ -57,7 +59,7 @@ function App() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/assets');
+      const response = await fetch(`${API_BASE}/api/assets`);
       if (!response.ok) throw new Error("서버에서 데이터를 가져오지 못했습니다.");
       const result: ApiResponse = await response.json();
       
@@ -65,7 +67,7 @@ function App() {
       setError(null);
 
       // Fetch history
-      const historyRes = await fetch('http://localhost:8000/api/history');
+      const historyRes = await fetch(`${API_BASE}/api/history`);
       if (historyRes.ok) {
         const historyResult = await historyRes.json();
         setHistory(historyResult);
@@ -89,7 +91,7 @@ function App() {
     setSearching(true);
     setSearchAttempted(true);
     try {
-      const response = await fetch(`http://localhost:8000/api/search?q=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(searchQuery)}`);
       const result = await response.json();
       setSearchResults(result);
     } catch (error) {
@@ -103,7 +105,7 @@ function App() {
     if (!selectedAsset || !quantity) return;
 
     try {
-      await fetch('http://localhost:8000/api/assets', {
+      await fetch(`${API_BASE}/api/assets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,7 +128,7 @@ function App() {
   const handleUpdateAsset = async (id: number) => {
     if (!editQuantity) return;
     try {
-      await fetch(`http://localhost:8000/api/assets/${id}?quantity=${parseFloat(editQuantity)}`, {
+      await fetch(`${API_BASE}/api/assets/${id}?quantity=${parseFloat(editQuantity)}`, {
         method: 'PUT',
       });
       setEditingId(null);
@@ -139,7 +141,7 @@ function App() {
 
   const handleDeleteAsset = async (id: number) => {
     try {
-      await fetch(`http://localhost:8000/api/assets/${id}`, {
+      await fetch(`${API_BASE}/api/assets/${id}`, {
         method: 'DELETE',
       });
       fetchData();
@@ -150,7 +152,7 @@ function App() {
 
   const handleCompare = async (date: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/history/${date}`);
+      const response = await fetch(`${API_BASE}/api/history/${date}`);
       if (!response.ok) throw new Error("Failed to fetch history details");
       const details = await response.json();
       setComparison({ date, details });
