@@ -70,7 +70,7 @@ def save_daily_history(total_value, asset_details):
             cursor.execute("""
             INSERT INTO asset_details_history (date, symbol, name, quantity, price, value_krw)
             VALUES (%s, %s, %s, %s, %s, %s)
-            """, (today, a['symbol'], a['name'], a['quantity'], a['current_price'], a['value_krw']))
+            """, (today, a['symbol'], a['name'], float(a['quantity']), float(a['current_price']), int(a['value_krw'])))
 
         conn.commit()
         cursor.close()
