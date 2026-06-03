@@ -38,7 +38,15 @@ class AssetOut(BaseModel):
 
 @app.on_event("startup")
 def startup_event():
-    asset_db.init_db()
+    import os
+    db_url = os.environ.get("DATABASE_URL", "NOT SET")
+    print(f"DATABASE_URL starts with: {db_url[:30] if db_url != 'NOT SET' else 'NOT SET'}")
+    try:
+        asset_db.init_db()
+        print("DB init successful")
+    except Exception as e:
+        print(f"DB init FAILED: {e}")
+        raise
 
 @app.get("/api/search")
 def search(q: str):
