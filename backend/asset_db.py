@@ -9,7 +9,11 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 
 def get_db_connection():
-    conn = psycopg2.connect(DATABASE_URL)
+    url = DATABASE_URL
+    # Supabase uses postgres:// but psycopg2 requires postgresql://
+    if url and url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    conn = psycopg2.connect(url, sslmode="require")
     return conn
 
 
