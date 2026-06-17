@@ -48,6 +48,16 @@ def init_db():
     )
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_asset_details_date ON asset_details_history(date)")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS cash_details (
+        id SERIAL PRIMARY KEY,
+        currency TEXT NOT NULL DEFAULT 'KRW',
+        label TEXT NOT NULL,
+        amount REAL NOT NULL,
+        note TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT NOW()
+    )
+    """)
     conn.commit()
     cursor.close()
     conn.close()
@@ -148,6 +158,52 @@ def delete_asset(asset_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM assets WHERE id = %s", (asset_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def get_cash_details(currency=None):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    if currency:
+        cursor.execute("SELECT * FROM cash_details WHERE currency = %s ORDER BY created_at ASC", (currency,))
+    else:
+        cursor.execute("SELECT * FROM cash_details ORDER BY currency ASC, created_at ASC")
+    details = [dict(row) for row in cursor.fetchall()]
+    cursor.close()
+    conn.close()
+    return details
+
+
+def add_cash_detail(currency, label, amount, note=''):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO cash_details (currency, label, amount, note) VALUES (%s, %s, %s, %s)",
+        (currency, label, amount, note)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def update_cash_detail(detail_id, label, amount, note):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE cash_details SET label = %s, amount = %s, note = %s WHERE id = %s",
+        (label, amount, note, detail_id)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def delete_cash_detail(detail_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM cash_details WHERE id = %s", (detail_id,))
     conn.commit()
     cursor.close()
     conn.close()

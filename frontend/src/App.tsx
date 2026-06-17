@@ -22,6 +22,15 @@ interface SearchResult {
   exchange: string;
 }
 
+interface CashDetail {
+  id: number;
+  currency: string;
+  label: string;
+  amount: number;
+  note: string;
+  created_at: string;
+}
+
 interface ApiResponse {
   assets: Asset[];
   total_value_krw: number;
@@ -58,6 +67,18 @@ function App() {
   const [editQuantity, setEditQuantity] = useState('');
   const [waking, setWaking] = useState(false);
 
+  // Cash detail state
+  const [cashDetails, setCashDetails] = useState<CashDetail[]>([]);
+  const [cashCurrency, setCashCurrency] = useState<'KRW' | 'USD'>('KRW');
+  const [cashEditingId, setCashEditingId] = useState<number | null>(null);
+  const [cashEditLabel, setCashEditLabel] = useState('');
+  const [cashEditAmount, setCashEditAmount] = useState('');
+  const [cashEditNote, setCashEditNote] = useState('');
+  const [showCashForm, setShowCashForm] = useState(false);
+  const [newCashLabel, setNewCashLabel] = useState('');
+  const [newCashAmount, setNewCashAmount] = useState('');
+  const [newCashNote, setNewCashNote] = useState('');
+
   const fetchData = async (retryCount = 0): Promise<void> => {
     try {
       const response = await fetch(`${API_BASE}/api/assets`);
@@ -86,8 +107,44 @@ function App() {
     }
   };
 
+  const fetchCashDetails = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/cash-details`);
+      if (res.ok) setCashDetails(await res.json());
+    } catch (e) {
+      console.error('Error fetching cash details:', e);
+    }
+  };
+
+  const handleAddCashDetail = async () => {
+    if (!newCashLabel || !newCashAmount) return;
+    await fetch(`${API_BASE}/api/cash-details`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currency: cashCurrency, label: newCashLabel, amount: parseFloat(newCashAmount), note: newCashNote }),
+    });
+    setNewCashLabel(''); setNewCashAmount(''); setNewCashNote(''); setShowCashForm(false);
+    fetchCashDetails();
+  };
+
+  const handleUpdateCashDetail = async (id: number) => {
+    await fetch(`${API_BASE}/api/cash-details/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currency: cashCurrency, label: cashEditLabel, amount: parseFloat(cashEditAmount), note: cashEditNote }),
+    });
+    setCashEditingId(null);
+    fetchCashDetails();
+  };
+
+  const handleDeleteCashDetail = async (id: number) => {
+    await fetch(`${API_BASE}/api/cash-details/${id}`, { method: 'DELETE' });
+    fetchCashDetails();
+  };
+
   useEffect(() => {
     fetchData();
+    fetchCashDetails();
     const interval = setInterval(() => fetchData(), 60000);
     return () => clearInterval(interval);
   }, []);
@@ -390,6 +447,81 @@ ${assetSummary}
             </tbody>
           </table>
         )}
+      </section>
+
+      <section className="cash-detail-section">
+        <div className="section-header">
+          <h3>현금 상세내역</h3>
+          <div className="cash-tabs">
+            <button className={`tab-btn ${cashCurrency === 'KRW' ? 'active' : ''}`} onClick={() => setCashCurrency('KRW')}>원화 (KRW)</button>
+            <button className={`tab-btn ${cashCurrency === 'USD' ? 'active' : ''}`} onClick={() => setCashCurrency('USD')}>달러 (USD)</button>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>계좌 / 장소</th>
+              <th>금액</th>
+              <th>메모</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cashDetails.filter(d => d.currency === cashCurrency).map(d => (
+              <tr key={d.id}>
+                <td>
+                  {cashEditingId === d.id
+                    ? <input className="edit-input" style={{width:'120px'}} value={cashEditLabel} onChange={e => setCashEditLabel(e.target.value)} />
+                    : d.label}
+                </td>
+                <td>
+                  {cashEditingId === d.id
+                    ? <input className="edit-input" type="number" style={{width:'120px'}} value={cashEditAmount} onChange={e => setCashEditAmount(e.target.value)} />
+                    : <>{d.amount.toLocaleString()} {cashCurrency}</>}
+                </td>
+                <td>
+                  {cashEditingId === d.id
+                    ? <input className="edit-input" style={{width:'140px'}} value={cashEditNote} onChange={e => setCashEditNote(e.target.value)} />
+                    : d.note}
+                </td>
+                <td className="actions">
+                  {cashEditingId === d.id ? (
+                    <>
+                      <button className="btn-save" onClick={() => handleUpdateCashDetail(d.id)}>저장</button>
+                      <button className="btn-cancel" onClick={() => setCashEditingId(null)}>취소</button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="btn-edit" onClick={() => { setCashEditingId(d.id); setCashEditLabel(d.label); setCashEditAmount(d.amount.toString()); setCashEditNote(d.note); }}>수정</button>
+                      <button className="btn-delete" onClick={() => handleDeleteCashDetail(d.id)}>삭제</button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {showCashForm && (
+              <tr className="cash-add-row">
+                <td><input className="edit-input" style={{width:'120px'}} placeholder="예: 카카오뱅크" value={newCashLabel} onChange={e => setNewCashLabel(e.target.value)} /></td>
+                <td><input className="edit-input" type="number" style={{width:'120px'}} placeholder="금액" value={newCashAmount} onChange={e => setNewCashAmount(e.target.value)} /></td>
+                <td><input className="edit-input" style={{width:'140px'}} placeholder="메모 (선택)" value={newCashNote} onChange={e => setNewCashNote(e.target.value)} /></td>
+                <td className="actions">
+                  <button className="btn-save" onClick={handleAddCashDetail}>저장</button>
+                  <button className="btn-cancel" onClick={() => { setShowCashForm(false); setNewCashLabel(''); setNewCashAmount(''); setNewCashNote(''); }}>취소</button>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        <div className="cash-detail-footer">
+          <button className="btn-add-cash-detail" onClick={() => setShowCashForm(true)} disabled={showCashForm}>+ 항목 추가</button>
+          <span className="cash-detail-total">
+            합계: <strong>
+              {cashDetails.filter(d => d.currency === cashCurrency).reduce((s, d) => s + d.amount, 0).toLocaleString()} {cashCurrency}
+            </strong>
+          </span>
+        </div>
       </section>
 
       <section className="asset-history">

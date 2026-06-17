@@ -25,6 +25,12 @@ class AssetIn(BaseModel):
     type: str
     quantity: float
 
+class CashDetailIn(BaseModel):
+    currency: str = 'KRW'
+    label: str
+    amount: float
+    note: str = ''
+
 class AssetOut(BaseModel):
     id: int
     name: str
@@ -123,6 +129,25 @@ def update_asset(asset_id: int, quantity: float):
 def delete_asset(asset_id: int):
     asset_db.delete_asset(asset_id)
     return {"message": "Asset deleted successfully"}
+
+@app.get("/api/cash-details")
+def get_cash_details(currency: Optional[str] = None):
+    return asset_db.get_cash_details(currency)
+
+@app.post("/api/cash-details")
+def add_cash_detail(detail: CashDetailIn):
+    asset_db.add_cash_detail(detail.currency, detail.label, detail.amount, detail.note)
+    return {"message": "Cash detail added successfully"}
+
+@app.put("/api/cash-details/{detail_id}")
+def update_cash_detail(detail_id: int, detail: CashDetailIn):
+    asset_db.update_cash_detail(detail_id, detail.label, detail.amount, detail.note)
+    return {"message": "Cash detail updated successfully"}
+
+@app.delete("/api/cash-details/{detail_id}")
+def delete_cash_detail(detail_id: int):
+    asset_db.delete_cash_detail(detail_id)
+    return {"message": "Cash detail deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn

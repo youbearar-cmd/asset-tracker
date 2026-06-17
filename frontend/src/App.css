@@ -460,6 +460,61 @@ tr:hover {
   padding: 40px;
 }
 
+.cash-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab-btn {
+  padding: 6px 16px;
+  font-size: 0.9rem;
+  background-color: #ecf0f1;
+  color: #555;
+  border-radius: 20px;
+}
+
+.tab-btn:hover {
+  background-color: #dce3e8;
+}
+
+.tab-btn.active {
+  background-color: #3498db;
+  color: white;
+}
+
+.cash-detail-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.btn-add-cash-detail {
+  background-color: #27ae60;
+  padding: 7px 16px;
+  font-size: 0.9rem;
+}
+
+.btn-add-cash-detail:hover {
+  background-color: #219150;
+}
+
+.btn-add-cash-detail:disabled {
+  background-color: #aaa;
+  cursor: default;
+}
+
+.cash-detail-total {
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+.cash-add-row td {
+  background-color: #f0faf4;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
