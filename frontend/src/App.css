@@ -263,6 +263,7 @@ th, td {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid #eee;
+  vertical-align: middle;
 }
 
 th {
@@ -311,6 +312,7 @@ tr:hover {
 
 .actions {
   display: flex;
+  align-items: center;
   white-space: nowrap;
 }
 
