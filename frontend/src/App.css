@@ -262,7 +262,6 @@ table {
 th, td {
   padding: 12px;
   text-align: left;
-  border-bottom: 1px solid #eee;
   vertical-align: middle;
 }
 
@@ -270,6 +269,14 @@ th {
   background-color: #f8f9fa;
   font-weight: 600;
   color: #2c3e50;
+}
+
+thead tr {
+  border-bottom: 2px solid #ddd;
+}
+
+tbody tr {
+  border-bottom: 1px solid #eee;
 }
 
 tr:hover {
@@ -311,8 +318,6 @@ tr:hover {
 }
 
 .actions {
-  display: flex;
-  align-items: center;
   white-space: nowrap;
 }
 
