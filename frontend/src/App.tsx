@@ -13,7 +13,11 @@ interface Asset {
   quantity: number;
   current_price: number;
   value_krw: number;
+  category: string | null;
+  display_category: string;
 }
+
+const STOCK_CATEGORIES = ['한국주식', '미국주식', '미국채권'];
 
 interface SearchResult {
   symbol: string;
@@ -38,7 +42,9 @@ interface ApiResponse {
   distribution: {
     "원화": number;
     "외화": number;
-    "주식": number;
+    "한국주식": number;
+    "미국주식": number;
+    "미국채권": number;
     "비트코인": number;
     "금": number;
   };
@@ -202,6 +208,19 @@ function App() {
     }
   };
 
+  const handleUpdateCategory = async (id: number, category: string) => {
+    try {
+      await fetch(`${API_BASE}/api/assets/${id}/category`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: category === 'auto' ? null : category }),
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error updating category:', error);
+    }
+  };
+
   const handleDeleteAsset = async (id: number) => {
     try {
       await fetch(`${API_BASE}/api/assets/${id}`, {
@@ -230,20 +249,24 @@ function App() {
   };
 
   const pieData = data ? {
-    labels: ['원화', '외화', '주식', '비트코인', '금'],
+    labels: ['원화', '외화', '한국주식', '미국주식', '미국채권', '비트코인', '금'],
     datasets: [
       {
         data: [
           data.distribution["원화"],
           data.distribution["외화"],
-          data.distribution["주식"],
+          data.distribution["한국주식"],
+          data.distribution["미국주식"],
+          data.distribution["미국채권"],
           data.distribution["비트코인"],
           data.distribution["금"],
         ],
         backgroundColor: [
           '#f1c40f',
           '#34495e',
+          '#e74c3c',
           '#3498db',
+          '#2ecc71',
           '#e67e22',
           '#f39c12',
         ],
@@ -390,6 +413,7 @@ ${assetSummary}
               <tr>
                 <th>자산명</th>
                 <th>심볼</th>
+                <th>분류</th>
                 <th>수량</th>
                 <th>현재가</th>
                 <th>평가액 (KRW)</th>
@@ -405,6 +429,22 @@ ${assetSummary}
                 <tr key={asset.id}>
                   <td>{asset.name}</td>
                   <td>{asset.symbol}</td>
+                  <td>
+                    {STOCK_CATEGORIES.includes(asset.display_category) ? (
+                      <select
+                        className="edit-input"
+                        value={asset.category || 'auto'}
+                        onChange={e => handleUpdateCategory(asset.id, e.target.value)}
+                      >
+                        <option value="auto">자동 ({asset.display_category})</option>
+                        {STOCK_CATEGORIES.map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      asset.display_category
+                    )}
+                  </td>
                   <td>
                     {editingId === asset.id ? (
                       <input 

@@ -24,6 +24,38 @@ class AssetIn(BaseModel):
     symbol: str
     type: str
     quantity: float
+    category: Optional[str] = None
+
+class CategoryIn(BaseModel):
+    category: Optional[str] = None
+
+STOCK_CATEGORIES = ["한국주식", "미국주식", "미국채권"]
+
+# Common US-listed bond ETF tickers, used for auto-classification.
+BOND_TICKERS = {
+    "TLT", "IEF", "SHY", "SHV", "BND", "AGG", "LQD", "HYG", "TIP", "TIPS",
+    "SCHZ", "GOVT", "BIL", "IEI", "EDV", "VGIT", "VGLT", "VCIT", "VCLT",
+    "MUB", "JNK", "SPTL", "SPTS", "USIG", "TLH", "BNDX", "BSV", "BIV", "BLV",
+    "TMF", "TMV", "TBT", "TBF", "PST", "SPAB", "FBND", "TFLO", "FLOT",
+    "MINT", "ICSH", "NEAR", "SGOV", "BILS",
+}
+
+def classify_stock_category(symbol: str, manual_category: Optional[str] = None) -> str:
+    """Resolves a non-cash/crypto/gold asset into 한국주식/미국주식/미국채권.
+    Manual category (set by the user) always wins over auto-detection.
+    """
+    if manual_category in STOCK_CATEGORIES:
+        return manual_category
+
+    symbol_up = symbol.upper()
+    if symbol_up.endswith(".KS") or symbol_up.endswith(".KQ"):
+        return "한국주식"
+
+    base_symbol = symbol_up.split(".")[0]
+    if base_symbol in BOND_TICKERS:
+        return "미국채권"
+
+    return "미국주식"
 
 class CashDetailIn(BaseModel):
     currency: str = 'KRW'
@@ -64,28 +96,32 @@ async def get_assets():
     distribution = {
         "원화": 0,
         "외화": 0,
-        "주식": 0,
+        "한국주식": 0,
+        "미국주식": 0,
+        "미국채권": 0,
         "비트코인": 0,
         "금": 0
     }
-    
+
     for a in evaluated:
         symbol = a['symbol'].upper()
         asset_type = a.get('type', '').upper()
         asset_name = a.get('name', '').upper()
         val = a['value_krw']
-        
-        if symbol == "KRW" or asset_type == "CASH":
-            distribution["원화"] += val
-        elif symbol == "USD" or ("USD" in symbol and asset_type == "CASH"):
-            distribution["외화"] += val
+
+        if symbol == "USD":
+            category = "외화"
+        elif symbol == "KRW" or asset_type == "CASH":
+            category = "원화"
         elif asset_type in ["CRYPTOCURRENCY", "COIN"]:
-            distribution["비트코인"] += val
+            category = "비트코인"
         elif "GC=F" in symbol or asset_type == "GOLD" or "금" in asset_name or "GOLD" in asset_name:
-            distribution["금"] += val
+            category = "금"
         else:
-            # Default to stocks for others
-            distribution["주식"] += val
+            category = classify_stock_category(a['symbol'], a.get('category'))
+
+        a['display_category'] = category
+        distribution[category] += val
 
     # Save today's history automatically with details
     if total_krw > 0:
@@ -115,7 +151,7 @@ def get_history_details(date: str):
 
 @app.post("/api/assets")
 def add_asset(asset: AssetIn):
-    success = asset_db.add_asset(asset.name, asset.symbol, asset.type, asset.quantity)
+    success = asset_db.add_asset(asset.name, asset.symbol, asset.type, asset.quantity, asset.category)
     if not success:
         raise HTTPException(status_code=400, detail="Failed to add asset")
     return {"message": "Asset added successfully"}
@@ -124,6 +160,13 @@ def add_asset(asset: AssetIn):
 def update_asset(asset_id: int, quantity: float):
     asset_db.update_asset_quantity(asset_id, quantity)
     return {"message": "Asset updated successfully"}
+
+@app.put("/api/assets/{asset_id}/category")
+def update_asset_category(asset_id: int, body: CategoryIn):
+    if body.category is not None and body.category not in STOCK_CATEGORIES:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    asset_db.update_asset_category(asset_id, body.category)
+    return {"message": "Category updated successfully"}
 
 @app.delete("/api/assets/{asset_id}")
 def delete_asset(asset_id: int):

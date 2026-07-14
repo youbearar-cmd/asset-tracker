@@ -26,9 +26,11 @@ def init_db():
         name TEXT NOT NULL,
         symbol TEXT NOT NULL UNIQUE,
         type TEXT NOT NULL,
-        quantity REAL NOT NULL
+        quantity REAL NOT NULL,
+        category TEXT
     )
     """)
+    cursor.execute("ALTER TABLE assets ADD COLUMN IF NOT EXISTS category TEXT")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS asset_history (
         date TEXT PRIMARY KEY,
@@ -108,13 +110,13 @@ def get_asset_history():
     return history
 
 
-def add_asset(name, symbol, asset_type, quantity):
+def add_asset(name, symbol, asset_type, quantity, category=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "INSERT INTO assets (name, symbol, type, quantity) VALUES (%s, %s, %s, %s)",
-            (name, symbol, asset_type, quantity)
+            "INSERT INTO assets (name, symbol, type, quantity, category) VALUES (%s, %s, %s, %s, %s)",
+            (name, symbol, asset_type, quantity, category)
         )
         conn.commit()
         return True
@@ -129,6 +131,19 @@ def add_asset(name, symbol, asset_type, quantity):
     finally:
         cursor.close()
         conn.close()
+
+
+def update_asset_category(asset_id, category):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE assets SET category = %s WHERE id = %s",
+        (category, asset_id)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return True
 
 
 def get_all_assets():
