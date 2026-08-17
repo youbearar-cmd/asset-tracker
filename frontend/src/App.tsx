@@ -101,7 +101,7 @@ function App() {
         setHistory(historyResult);
       }
     } catch (error: any) {
-      if (retryCount < 4) {
+      if (retryCount < 8) {
         setWaking(true);
         setTimeout(() => fetchData(retryCount + 1), 15000);
       } else {
